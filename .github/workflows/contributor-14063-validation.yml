@@ -16,7 +16,7 @@ jobs:
   preflight:
     if: github.repository == 'gtdd123/qwen-code'
     runs-on: ubuntu-22.04
-    timeout-minutes: 120
+    timeout-minutes: 360
     env:
       CI: '1'
       VITEST_MAX_THREADS: '1'
@@ -48,3 +48,45 @@ jobs:
         run: npm run preflight
       - name: Confirm no tracked source changes
         run: git diff --exit-code
+  worktree-baseline-comparison:
+    if: github.repository == 'gtdd123/qwen-code'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        source:
+          - 3a9bbd7216d67a101e70f8c60e1a92dc0d7a3746
+          - 72fa1bac38984c7aa2bec5a884d4c4a1e4175ba3
+    env:
+      CI: '1'
+      VITEST_MAX_THREADS: '1'
+      VITEST_MIN_THREADS: '1'
+      VITEST_MAX_FORKS: '1'
+      VITEST_MIN_FORKS: '1'
+    steps:
+      - name: Check out immutable comparison source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ matrix.source }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.22.2'
+      - name: Set up pinned Corepack
+        run: |
+          npm install --global corepack@0.36.0
+          corepack enable
+      - name: Record exact source and environment
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ matrix.source }}"
+          node --version
+          git --version
+          git diff 3a9bbd7216d67a101e70f8c60e1a92dc0d7a3746 HEAD -- packages/core/src/utils/git-worktrees.ts packages/core/src/utils/git-worktrees.test.ts
+      - name: Install frozen dependencies and build prerequisites
+        run: corepack pnpm install --frozen-lockfile
+      - name: Run unchanged worktree test file without skipping assertions
+        working-directory: packages/core
+        run: corepack pnpm exec vitest run src/utils/git-worktrees.test.ts
