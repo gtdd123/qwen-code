@@ -40,6 +40,10 @@ jobs:
           corepack enable
       - name: Verify source identity
         run: test "$(git rev-parse HEAD)" = "72fa1bac38984c7aa2bec5a884d4c4a1e4175ba3"
+      - name: Bootstrap dependencies needed by the clean script
+        env:
+          QWEN_SKIP_PREPARE: '1'
+        run: corepack pnpm install --frozen-lockfile
       - name: Run complete repository preflight
         run: npm run preflight
       - name: Confirm no tracked source changes
