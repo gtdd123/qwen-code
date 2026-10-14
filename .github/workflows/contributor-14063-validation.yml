@@ -1,0 +1,46 @@
+name: Contributor validation 14063
+
+on:
+  push:
+    branches:
+      - validation/member-message-timeout-14063
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contributor-14063-ubuntu
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'gtdd123/qwen-code'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      CI: '1'
+      VITEST_MAX_THREADS: '1'
+      VITEST_MIN_THREADS: '1'
+      VITEST_MAX_FORKS: '1'
+      VITEST_MIN_FORKS: '1'
+    steps:
+      - name: Check out the immutable fix commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 72fa1bac38984c7aa2bec5a884d4c4a1e4175ba3
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.22.2'
+      - name: Set up pinned Corepack
+        run: |
+          npm install --global corepack@0.36.0
+          corepack enable
+      - name: Verify source identity
+        run: test "$(git rev-parse HEAD)" = "72fa1bac38984c7aa2bec5a884d4c4a1e4175ba3"
+      - name: Run complete repository preflight
+        run: npm run preflight
+      - name: Confirm no tracked source changes
+        run: git diff --exit-code
