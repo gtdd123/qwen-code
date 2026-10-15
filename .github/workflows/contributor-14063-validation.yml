@@ -1,6 +1,7 @@
 name: Contributor remaining gates 14063
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - validation/member-message-timeout-14063
